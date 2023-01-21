@@ -4,16 +4,40 @@ from dotenv import load_dotenv
 from flask import Flask, jsonify, request
 
 CREATE_TRAVEL_PLAN_TABLE = (
-    "CREATE TABLE IF NOT EXISTS travel_plan (id SERIAL PRIMARY KEY, title TEXT, type TEXT, description TEXT);"
+    "CREATE TABLE IF NOT EXISTS travel_plan (id SERIAL PRIMARY KEY, title TEXT, type TEXT, country TEXT, city TEXT, description TEXT);"
 )
 
-ADD_TRAVEL_DEST = "INSERT INTO travel_plan (title, type, description) VALUES (%s, %s, %s) RETURNING id;"
+CREATE_USER_TABLE = (
+    "CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, username TEXT, password TEXT);"
+)
 
-SELECT_ALL = "SELECT * FROM travel_plan;"
+CREATE_MAPPING_TABLE = (
+    "CREATE TABLE IF NOT EXISTS mappings (id SERIAL PRIMARY KEY, user_id INT, dest_id INT, FOREIGN KEY (user_id) REFERENCES users(id), FOREIGN KEY (dest_id) REFERENCES travel_plan(id));"
+)
 
-DELETE_ALL = "DELETE FROM travel_plan;"
+ADD_USER = "INSERT INTO users (username, password) VALUES (%s, %s);"
 
-RESTART_ID = "ALTER SEQUENCE travel_plan_id_seq RESTART WITH 1"
+ADD_TRAVEL_DEST = "INSERT INTO travel_plan (title, type, country, city, description) VALUES (%s, %s, %s, %s, %s);"
+
+ADD_MAPPING  = "INSERT INTO mappings (user_id, dest_id) VALUES (%s, %s);"
+
+SELECT_ALL_USERS = "SELECT * FROM users;"
+
+SELECT_ALL_USERNAMES = "SELECT username FROM users;"
+
+SELECT_ALL_MAPPINGS = "SELECT * FROM mappings;"
+
+SELECT_ALL_DEST = "SELECT * FROM travel_plan;"
+
+DELETE_ALL_DEST = "DELETE FROM travel_plan;"
+
+DELETE_ALL_USERS = "DELETE FROM users"
+
+RESTART_ID = "ALTER SEQUENCE travel_plan_id_seq RESTART WITH 1;"
+
+SELECT_ONE = "SELECT * FROM travel_plan where id = 2;"
+
+DROP_TRAVEL_PLAN = "DROP TABLE travel_plan;"
 
 load_dotenv( )
 
@@ -25,32 +49,97 @@ connection = psycopg2.connect(url)
 def home():
     return "COOL GEESE BACKEND :)"
 
+def checkUniqueUser(curr_username: str, cursor) -> bool:
+    cursor.execute(SELECT_ALL_USERNAMES)
+    response = cursor.fetchall()
+    if (len(response) > 0):
+        for username in response[0]:
+            if (curr_username == username):
+                return False
+    return True
+
+@app.post('/api/signup')
+def signup():
+    data = request.get_json()
+    username = data["username"]
+    password = data["password"]
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(CREATE_USER_TABLE)
+            if (checkUniqueUser(username, cursor) == False):
+                return {"type": "FAIL", "message": "username is duplicate"}
+            cursor.execute(ADD_USER, (username, password))
+        return {"type": "SUCCESS"}
+
 @app.post('/api/add_destination')
 def add_destination():
     data = request.get_json()
     title = data["title"]
     type = data["type"]
+    country = data["country"]
+    city = data["city"]
     desc = data["description"]
+    user_id = data["user_id"]
     with connection:
         with connection.cursor() as cursor:
             cursor.execute(CREATE_TRAVEL_PLAN_TABLE)
-            cursor.execute(ADD_TRAVEL_DEST, (title, type, desc))
+            cursor.execute(ADD_TRAVEL_DEST, (title, type, country, city, desc))
             dest_id = cursor.fetchone()[0]
-        return {"type": "SUCCESS", "id": dest_id, "message": "Destination {title} added."}, 201
+            cursor.execute(CREATE_MAPPING_TABLE)
+            cursor.execute(ADD_MAPPING, (user_id, dest_id))
+        return {"type": "SUCCESS", "id": dest_id, "message": f"Destination {title} added."}, 201
 
-@app.post('/api/get_all')
-def get_all():
+@app.get('/api/get_all_destinations')
+def get_all_dest():
     with connection:
         with connection.cursor() as cursor:
-            cursor.execute(SELECT_ALL)
+            cursor.execute(SELECT_ALL_DEST)
             result = cursor.fetchall()
             return {"type": "SUCCESS", "response": result}
 
-@app.post('/api/delete_all')
-def delete_all():
+@app.get('/api/get_all_users')
+def get_all_users():
     with connection:
         with connection.cursor() as cursor:
-            cursor.execute(DELETE_ALL)
+            cursor.execute(SELECT_ALL_USERS)
+            result = cursor.fetchall()
+            return {"type": "SUCCESS", "response": result}
+
+@app.get('/api/get_all_mappings')
+def get_all_mappings():
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(SELECT_ALL_MAPPINGS)
+            result = cursor.fetchall()
+            return {"type": "SUCCESS", "response": result}
+
+@app.get('/api/select_one')
+def get_one():
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(SELECT_ONE)
+            result = cursor.fetchall()
+        return {"type": "SUCCESS", "response": result}, 201
+
+@app.delete('/api/drop_travel_plan') # for dev only
+def drop_travel_plan():
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(DROP_TRAVEL_PLAN)
+        return {"type": "SUCCESS"}, 201
+
+@app.delete('/api/delete_all_users')
+def delete_all_users():
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(DELETE_ALL_USERS)
+        return {"type": "SUCCESS"}, 201
+
+@app.delete('/api/delete_all_destinations')
+def delete_all_dest():
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(DELETE_ALL_DEST)
             cursor.execute(RESTART_ID)
         return {"type": "SUCCESS"}, 201
 
