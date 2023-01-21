@@ -19,7 +19,7 @@ CREATE_MAPPING_TABLE = (
 
 ADD_USER = "INSERT INTO users (username, password) VALUES (%s, %s);"
 
-ADD_TRAVEL_DEST = "INSERT INTO travel_plan (title, type, country, city, description) VALUES (%s, %s, %s, %s, %s);"
+ADD_TRAVEL_DEST = "INSERT INTO travel_plan (title, type, country, city, description) VALUES (%s, %s, %s, %s, %s) RETURNING id;"
 
 ADD_MAPPING  = "INSERT INTO mappings (user_id, dest_id) VALUES (%s, %s);"
 
@@ -33,7 +33,13 @@ SELECT_ALL_DEST = "SELECT * FROM travel_plan;"
 
 DELETE_ALL_DEST = "DELETE FROM travel_plan;"
 
-DELETE_ALL_USERS = "DELETE FROM users"
+DELETE_ALL_USERS = "DELETE FROM users;"
+
+DELETE_ALL_MAP = "DELETE FROM mappings;"
+
+DELETE_DEST = "DELETE FROM travel_plan WHERE id = %s;"
+
+DELETE_MAP = "DELETE FROM mappings WHERE dest_id = %s;"
 
 RESTART_ID = "ALTER SEQUENCE travel_plan_id_seq RESTART WITH 1;"
 
@@ -123,6 +129,16 @@ def get_one():
             result = cursor.fetchall()
         return {"type": "SUCCESS", "response": result}, 201
 
+@app.delete('/api/delete_destination')
+def delete_dest():
+    data = request.get_json()
+    dest_id = data["dest_id"]
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(DELETE_MAP, (dest_id, ))
+            cursor.execute(DELETE_DEST, (dest_id, ))
+        return {"type": "SUCCESS"}, 201
+
 @app.delete('/api/drop_travel_plan') # for dev only
 def drop_travel_plan():
     with connection:
@@ -135,6 +151,14 @@ def delete_all_users():
     with connection:
         with connection.cursor() as cursor:
             cursor.execute(DELETE_ALL_USERS)
+        return {"type": "SUCCESS"}, 201
+
+
+@app.delete('/api/delete_all_mappings')
+def delete_all_map():
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(DELETE_ALL_MAP)
         return {"type": "SUCCESS"}, 201
 
 @app.delete('/api/delete_all_destinations')
