@@ -1,9 +1,7 @@
 import os
 import psycopg2
 from dotenv import load_dotenv
-from flask import Flask, request
-
-# SQL QUERIES
+from flask import Flask
 
 CREATE_TRAVEL_PLAN_TABLE = (
     "CREATE TABLE IF NOT EXISTS travel_plan (id SERIAL PRIMARY KEY, title TEXT, type TEXT, description TEXT);"
@@ -55,6 +53,12 @@ def delete_all():
             cursor.execute(DELETE_ALL)
             cursor.execute(RESTART_ID)
         return {"type": "SUCCESS"}, 201
+
+jsonDict = {}
+
+@app.route('/', methods=['GET', 'POST'])
+def makeJson():
+    return jsonify(jsonDict)
 
 if __name__=="__main__":
     app.run(debug=True)
