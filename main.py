@@ -1,7 +1,7 @@
 import os
 import psycopg2
 from dotenv import load_dotenv
-from flask import Flask
+from flask import Flask, jsonify, request
 
 CREATE_TRAVEL_PLAN_TABLE = (
     "CREATE TABLE IF NOT EXISTS travel_plan (id SERIAL PRIMARY KEY, title TEXT, type TEXT, description TEXT);"
@@ -54,11 +54,35 @@ def delete_all():
             cursor.execute(RESTART_ID)
         return {"type": "SUCCESS"}, 201
 
-jsonDict = {}
+# filter by specific types (namely city and destination)
+@app.get('/api/travel_spot')
+def filterBy():
+    '''
+    city TEXT -> City  
+    type TEXT -> Destination
+    '''
+    # ?city=some-value&type=another_value
+    city = request.args.get('city')
+    destination = request.args.get('type')
 
-@app.route('/', methods=['GET', 'POST'])
-def makeJson():
-    return jsonify(jsonDict)
+    select_city_dest = ""
+
+    if city and destination:
+        select_city_dest = f"SELECT * FROM travel_plan WHERE city={city} AND type={destination};"
+    elif city:
+        select_city_dest = f"SELECT * FROM travel_plan WHERE city={city};"
+    elif destination:
+        select_city_dest = f"SELECT * FROM travel_plan WHERE city={destination};"
+
+    with connection:
+        with connection.cursor() as cursor:
+            if len(select_city_dest) > 0:
+                cursor.execute(select_city_dest)
+                result = cursor.fetchall()
+            else:
+                result = select_city_dest
+
+    return {"type": "SUCCESS", "response": result}
 
 if __name__=="__main__":
-    app.run(debug=True)
+    app.run(debug=True, port=8080)
