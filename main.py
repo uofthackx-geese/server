@@ -185,13 +185,14 @@ def filterBy():
     elif city:
         select_city_dest = f"SELECT * FROM travel_plan WHERE city={city};"
     elif destination:
-        select_city_dest = f"SELECT * FROM travel_plan WHERE city={destination};"
+        select_city_dest = f"SELECT * FROM travel_plan WHERE type={destination};"
 
     with connection:
         with connection.cursor() as cursor:
             if len(select_city_dest) > 0:
                 cursor.execute(select_city_dest)
                 result = cursor.fetchall()
+                print(select_city_dest)
             else:
                 result = select_city_dest
 
