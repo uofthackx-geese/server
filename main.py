@@ -192,7 +192,6 @@ def filterBy():
             if len(select_city_dest) > 0:
                 cursor.execute(select_city_dest)
                 result = cursor.fetchall()
-                print(select_city_dest)
             else:
                 result = select_city_dest
 
