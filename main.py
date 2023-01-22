@@ -173,8 +173,8 @@ def delete_all_dest():
 def restart_TP():
     with connection:
         with connection.cursor() as cursor:
-            cursor.execute(DELETE_ALL_DEST)
             cursor.execute(DELETE_ALL_MAP)
+            cursor.execute(DELETE_ALL_DEST)
         return {"type": "SUCCESS"}, 201
 
 # filter by specific types (namely city and destination)
