@@ -2,6 +2,7 @@ import os
 import psycopg2
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request
+from flask_cors import CORS
 
 CREATE_TRAVEL_PLAN_TABLE = (
     "CREATE TABLE IF NOT EXISTS travel_plan (id SERIAL PRIMARY KEY, title TEXT, type TEXT, country TEXT, city TEXT, description TEXT);"
@@ -48,6 +49,7 @@ DROP_TRAVEL_PLAN = "DROP TABLE travel_plan;"
 load_dotenv( )
 
 app = Flask(__name__)
+CORS(app)
 url = os.getenv("DATABASE_URL")
 connection = psycopg2.connect(url)
 
@@ -165,6 +167,14 @@ def delete_all_dest():
         with connection.cursor() as cursor:
             cursor.execute(DELETE_ALL_DEST)
             cursor.execute(RESTART_ID)
+        return {"type": "SUCCESS"}, 201
+
+@app.delete('/api/restart_TP')
+def restart_TP():
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(DELETE_ALL_DEST)
+            cursor.execute(DELETE_ALL_MAP)
         return {"type": "SUCCESS"}, 201
 
 # filter by specific types (namely city and destination)
