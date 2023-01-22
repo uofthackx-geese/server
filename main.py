@@ -197,5 +197,18 @@ def filterBy():
 
     return {"type": "SUCCESS", "response": result}
 
+# get the full travel plan of one user ID
+@app.get('/api/get_all_data')
+def get_all_data():
+    # ?user_id=some-value
+    user_id = request.args.get('user_id')
+    select_travel =  f"SELECT * FROM travel_plan WHERE id IN (SELECT dest_id FROM mappings WHERE user_id={user_id});"
+    
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(select_travel);
+            result = cursor.fetchall();
+            return {"type": "SUCCESS", "response": result}
+
 if __name__=="__main__":
     app.run(debug=True, port=8080)
