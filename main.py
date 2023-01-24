@@ -5,7 +5,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 CREATE_TRAVEL_PLAN_TABLE = (
-    "CREATE TABLE IF NOT EXISTS travel_plan (id SERIAL PRIMARY KEY, title TEXT, type TEXT, country TEXT, city TEXT, description TEXT);"
+    "CREATE TABLE IF NOT EXISTS travel_plan (id SERIAL PRIMARY KEY, title TEXT, type TEXT, country TEXT, city TEXT, description TEXT, image_url TEXT);"
 )
 
 CREATE_USER_TABLE = (
@@ -18,7 +18,7 @@ CREATE_MAPPING_TABLE = (
 
 ADD_USER = "INSERT INTO users (username, password) VALUES (%s, %s);"
 
-ADD_TRAVEL_DEST = "INSERT INTO travel_plan (title, type, country, city, description) VALUES (%s, %s, %s, %s, %s) RETURNING id;"
+ADD_TRAVEL_DEST = "INSERT INTO travel_plan (title, type, country, city, description, image_url) VALUES (%s, %s, %s, %s, %s, %s) RETURNING id;"
 
 ADD_MAPPING  = "INSERT INTO mappings (user_id, dest_id) VALUES (%s, %s);"
 
@@ -45,6 +45,8 @@ RESTART_ID = "ALTER SEQUENCE travel_plan_id_seq RESTART WITH 1;"
 SELECT_ONE = "SELECT * FROM travel_plan where id = 2;"
 
 DROP_TRAVEL_PLAN = "DROP TABLE travel_plan;"
+
+DROP_MAP = "DROP TABLE mappings"
 
 load_dotenv( )
 
@@ -88,10 +90,11 @@ def add_destination():
     city = data["city"]
     desc = data["description"]
     user_id = data["user_id"]
+    image_url = data["image_url"]
     with connection:
         with connection.cursor() as cursor:
             cursor.execute(CREATE_TRAVEL_PLAN_TABLE)
-            cursor.execute(ADD_TRAVEL_DEST, (title, type, country, city, desc))
+            cursor.execute(ADD_TRAVEL_DEST, (title, type, country, city, desc, image_url))
             dest_id = cursor.fetchone()[0]
             cursor.execute(CREATE_MAPPING_TABLE)
             cursor.execute(ADD_MAPPING, (user_id, dest_id))
@@ -143,6 +146,7 @@ def delete_dest():
 def drop_travel_plan():
     with connection:
         with connection.cursor() as cursor:
+            cursor.execute(DROP_MAP)
             cursor.execute(DROP_TRAVEL_PLAN)
         return {"type": "SUCCESS"}, 201
 
